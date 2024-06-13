@@ -125,13 +125,57 @@ def create_patient():
 
 @app.route('/api/news', methods=['GET'])
 def get_news():
-    news = {
+    news = [{
         'title': 'Чек-ап для мужчин',
         'description': '9 исследований',
         'price': '8000 ₽',
-        'image_url': 'http://10.0.2.2:5000/api/news.png'
+    },
+    {
+        'title': 'Подготовка к вакцинации',
+        'description': 'Комплекс перед вакцинацией',
+        'price': '4000 ₽',
     }
+    ]
     return jsonify(news)
+
+@app.route('/api/patient/<int:patient_id>', methods=['GET'])
+def get_patient(patient_id):
+    patient = Patient.query.get(patient_id)
+    if patient:
+     return jsonify({
+      'firstName': patient.first_name,
+      'lastName': patient.last_name,
+      'middleName': patient.middle_name,
+      'birthDate': patient.birth_date,
+     'gender': patient.gender
+     }),200
+    return jsonify({"error": "Patient not found"}), 404
+
+@app.route('/api/patient/<int:patient_id>', methods=['PUT'])
+def update_patient(patient_id):
+ data = request.get_json()
+ patient = Patient.query.get(patient_id)
+ if not patient:
+  return jsonify({"error": "Patient not found"}), 404
+
+ patient.first_name = data.get('firstName', patient.first_name)
+ patient.last_name = data.get('lastName', patient.last_name)
+ patient.middle_name = data.get('middleName', patient.middle_name)
+ patient.birth_date = datetime.strptime(data.get('birthDate', patient.birth_date.strftime('%Y-%m-%d')), '%Y-%m-%d').date()
+ patient.gender = data.get('gender', patient.gender)
+
+ try:
+  db.session.commit()
+  return jsonify({
+ 'firstName': patient.first_name,
+ 'lastName': patient.last_name,
+ 'middleName': patient.middle_name,
+ 'birthDate': patient.birth_date.strftime('%Y-%m-%d'),
+ 'gender': patient.gender
+  }), 200
+ except Exception as e:
+  db.session.rollback()
+  return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     with app.app_context():
